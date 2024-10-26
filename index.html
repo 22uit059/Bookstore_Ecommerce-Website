@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="bookstoreApp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Online Bookstore</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <style>
+        /* Add some basic styles */
+        body {
+            background-image: url('https://i.pinimg.com/originals/67/18/22/671822c2f63dd5f65d8fd15c9710420b.jpg');
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cart-wishlist-header {
+            display: flex;
+            align-items: center;
+        }
+        .cart-wishlist-header button {
+            margin-left: 10px;
+            padding: 10px 15px;
+            background-color: #555;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .cart-wishlist-header button:hover {
+            background-color: #777;
+        }
+        .container {
+            padding: 20px;
+        }
+        .book-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .book-card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            width: 200px;
+            text-align: center;
+            background-color: #fff;
+        }
+        .book-card img {
+            width: 150px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .dropdown-img {
+            width: 50px;
+            height: auto;
+            vertical-align: middle;
+        }
+        .cart-wishlist-section {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+        }
+        .feedback-section {
+            margin-top: 10px;
+        }
+        .feedback-section textarea {
+            width: 100%;
+            margin-top: 5px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            resize: vertical;
+        }
+        .feedback-section button {
+            margin-top: 5px;
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .feedback-section button:hover {
+            background-color: #218838;
+        }
+        .feedback {
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            text-align: left;
+        }
+        .book-rating span {
+            cursor: pointer;
+            font-size: 20px;
+            color: gold;
+        }
+        .book-rating span:hover,
+        .book-rating span:hover ~ span {
+            color: orange;
+        }
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 10px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        button.buy-now {
+            margin-top: 5px;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button.buy-now:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body ng-controller="AuthController">
+
+    <header>
+        <h1>Online Bookstore</h1>
+        <div class="cart-wishlist-header">
+            <button ng-click="toggleCart()">
+                Cart ({{cart.length}})
+            </button>
+            <button ng-click="toggleWishlist()">
+                Wishlist ({{wishlist.length}})
+            </button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Login and Registration Section -->
+        <div ng-show="!isLoggedIn">
+            <h2>Login</h2>
+            <form ng-submit="login()">
+                <input type="text" ng-model="loginData.username" placeholder="Username" required>
+                <input type="password" ng-model="loginData.password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <h2>Register</h2>
+            <form ng-submit="register()">
+                <input type="text" ng-model="registerData.username" placeholder="Username" required>
+                <input type="email" ng-model="registerData.email" placeholder="Email" required>
+                <input type="password" ng-model="registerData.password" placeholder="Password" required>
+                <button type="submit">Register</button>
+            </form>
+        </div>
+
+        <!-- Bookstore Section (Visible after login) -->
+        <div ng-show="isLoggedIn" ng-controller="BookController">
+            <h2>Books</h2>
+
+            <!-- Search bar -->
+            <input type="text" ng-model="searchQuery" ng-change="searchBooks()" placeholder="Search for books...">
+
+            <!-- Books Display -->
+            <div class="book-grid">
+                <div class="book-card" ng-repeat="book in filteredBooks">
+                    <img ng-src="{{book.imageUrl}}" alt="{{book.title}}">
+                    <div class="book-title">{{book.title}}</div>
+                    <div class="book-author">by {{book.author}}</div>
+                    <div class="book-price">Price: ${{book.price}}</div>
+                    <div class="book-description">{{book.description}}</div>
+
+                    <!-- Star Rating System -->
+                    <div class="book-rating">
+                        <span ng-repeat="n in [1, 2, 3, 4, 5]" ng-click="rateBook(book, n)">
+                            {{ n <= Math.round(book.rating) ? '★' : '☆' }}
+                        </span> ({{ book.rating }} / 5 stars, {{ book.ratingCount }} ratings)
+                    </div>
+
+                    <!-- Add to Cart Button -->
+                    <button ng-click="addToCart(book)">Add to Cart</button>
+
+                    <!-- Buy Now Button -->
+                    <button class="buy-now" ng-click="buyNow(book)">Buy Now</button>
+
+                    <!-- Wishlist Button with Heart Icon -->
+                    <button ng-click="addToWishlist(book)">
+                        <span ng-style="{color: book.isInWishlist ? 'red' : 'black'}">
+                            ♥
+                        </span> {{ book.isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' }}
+                    </button>
+
+                    <!-- Feedback Section -->
+                    <div class="feedback-section">
+                        <h4>Feedback:</h4>
+                        <textarea ng-model="book.feedbackText" placeholder="Leave your feedback here..."></textarea>
+                        <button ng-click="submitFeedback(book)">Submit Feedback</button>
+                        <div ng-repeat="feedback in book.feedbackList" class="feedback">
+                            <strong>{{feedback.username}}:</strong> {{feedback.text}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Section -->
+            <div class="cart-wishlist-section" ng-show="isCartVisible">
+                <h3>Your Cart</h3>
+                <div ng-repeat="book in cart">
+                    <img ng-src="{{book.imageUrl}}" alt="{{book.title}}" class="dropdown-img">
+                    <p>{{ book.title }} - ${{ book.price }}</p>
+                </div>
+            </div>
+
+            <!-- Wishlist Section -->
+            <div class="cart-wishlist-section" ng-show="isWishlistVisible">
+                <h3>Your Wishlist</h3>
+                <div ng-repeat="book in wishlist">
+                    <img ng-src="{{book.imageUrl}}" alt="{{book.title}}" class="dropdown-img">
+                    <p>{{ book.title }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Online Bookstore</p>
+    </footer>
+
+    <script>
+        // AngularJS Application Module
+        angular.module('bookstoreApp', [])
+            .controller('AuthController', ['$scope', function($scope) {
+                $scope.isLoggedIn = false;
+                $scope.cart = [];
+                $scope.wishlist = [];
+                $scope.isCartVisible = false;
+                $scope.isWishlistVisible = false;
+                $scope.users = []; // Array to store registered users
+                $scope.loginData = {};
+                $scope.registerData = {};
+
+                $scope.toggleCart = function() {
+                    $scope.isCartVisible = !$scope.isCartVisible;
+                    $scope.isWishlistVisible = false; // Hide wishlist when cart is shown
+                };
+
+                $scope.toggleWishlist = function() {
+                    $scope.isWishlistVisible = !$scope.isWishlistVisible;
+                    $scope.isCartVisible = false; // Hide cart when wishlist is shown
+                };
+
+                // Login function
+                $scope.login = function() {
+                    const user = $scope.users.find(u => u.username === $scope.loginData.username && u.password === $scope.loginData.password);
+                    if (user) {
+                        $scope.isLoggedIn = true;
+                        $scope.loginData = {}; // Clear login data
+                    } else {
+                        alert('Invalid username or password!');
+                    }
+                };
+
+                // Registration function
+                $scope.register = function() {
+                    // Check if the username is already taken
+                    const existingUser = $scope.users.find(u => u.username === $scope.registerData.username);
+                    if (existingUser) {
+                        alert('Username already taken!');
+                        return;
+                    }
+                    // Add the new user to the users array
+                    $scope.users.push({
+                        username: $scope.registerData.username,
+                        email: $scope.registerData.email,
+                        password: $scope.registerData.password
+                    });
+                    alert('Registration successful! You can now log in.');
+                    $scope.registerData = {}; // Clear registration data
+                };
+            }])
+            .controller('BookController', ['$scope', function($scope) {
+                // Example list of books
+                $scope.books = [
+                    { title: 'Charlotte\'s Web', author: 'E. B. White', price: 10.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'Charlotte\'s Web is a beloved children\'s novel that tells the heartwarming story of a pig named Wilbur and his friendship with a clever spider named Charlotte, who uses her web-spinning talents to save him from slaughter, exploring themes of friendship, sacrifice, and the cycle of life.', imageUrl: 'https://chimesradio.com/wp-content/uploads/2020/10/charlotte-s-web.jpg' },
+                    { title: 'Harry Potter', author: 'J.K. Rowling', price: 12.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'The Harry Potter series follows the journey of a young wizard, Harry Potter, as he discovers his magical heritage, attends Hogwarts School of Witchcraft and Wizardry, and battles the dark wizard Voldemort, exploring themes of friendship, bravery, and the struggle between good and evil.', imageUrl: 'https://chimesradio.com/wp-content/uploads/2020/10/HARRY-POTTER.jpg' },
+                    { title: 'The Book Of Lost Names', author: 'Kristin Harmel', price: 15.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'The Book of Lost Names is a historical novel about a young Jewish woman who helps forge documents to save children during World War II while confronting her past and the mystery of a coded book.', imageUrl: 'https://d28hgpri8am2if.cloudfront.net/book_images/onix/cvr9781982131906/the-book-of-lost-names-9781982131906_lg.jpg' },
+                    { title: 'The Jungle Book', author: 'Rudyard Kipling', price: 9.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'The Jungle Book is a classic collection of stories centered on Mowgli, a boy raised by wolves, and his adventures with various animals in the Indian jungle, exploring themes of survival, identity, and the laws of nature.', imageUrl: 'https://chimesradio.com/wp-content/uploads/2020/10/jungle-book-e1624083257959.jpg' },
+                    { title: 'This Is Not Your Story', author: 'Savi Sharma', price: 14.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'This Is Not Your Story is an inspiring novel about self-discovery, following the lives of four individuals who pursue their dreams and overcome personal challenges, showing that everyone has the power to rewrite their own story.', imageUrl: 'https://www.bookgeeks.in/wp-content/uploads/2018/01/This-is-Not-Your-Story-by-Savi-Sharma.jpg' },
+                    { title: 'Stuart Little', author: 'E. B. White', price: 19.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'Stuart Little is a heartwarming children\'s novel about a small mouse born to a human family, who embarks on adventurous journeys in search of friendship and his true identity.', imageUrl: 'https://chimesradio.com/wp-content/uploads/2020/10/stuart-little.jpg' },
+                    { title: 'The Gift Of The Magi', author: 'O. Henry', price: 7.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'The Gift of the Magi is a timeless short story about a young couple who sacrifice their most treasured possessions to buy each other meaningful Christmas gifts, highlighting themes of love, sacrifice, and irony.', imageUrl: 'https://www.learnenglishteam.com/wp-content/uploads/2019/09/the-gift-of-the-magi-english-stories-for-learners.png' },
+                    { title: 'Ruskin Bond', author: 'Ruskin Bond', price: 18.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'Ruskin Bond is a celebrated Indian author whose stories capture the charm of nature, childhood, and small-town life, often set in the Himalayan foothills, blending simplicity with profound emotions.', imageUrl: 'https://staticbiassets.in/photo/78442712/Master.jpg' },
+                    { title: 'What is Not Yours Is Not Yours', author: 'Helen Oyeyemi', price: 11.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'What is Not Yours is Not Yours is a captivating collection of interconnected short stories, blending magical realism and folklore, where keys unlock not just doors but secrets and possibilities, exploring themes of love, identity, and belonging.', imageUrl: 'https://stanforddaily.com/wp-content/uploads/2019/04/91TnH6cu4uL.jpg' },
+                    { title: 'A Story Of Struggle', author: 'Shagufta Iqbal', price: 16.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'A Story of Struggle is a poignant narrative that follows the journey of a young girl facing societal challenges and personal hardships, showcasing her resilience and determination to overcome obstacles in pursuit of her dreams.', imageUrl: 'https://m.media-amazon.com/images/I/51xwFZin4pL._SY466_.jpg' },
+                    { title: 'Ponniyin Selvan', author: 'Kalki Krishnamurthy', price: 8.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'Ponniyin Selvan is a historical novel set in 10th-century Tamil Nadu, chronicling the life and adventures of Arulmozhivarman (later known as Raja Raja Chola I) amidst political intrigue, romance, and the quest for power in the Chola dynasty.', imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYWNfMMzoiMDFNTkeIsTMaLUyRNOVdV9b9ig&s' },
+                    { title: 'Barthiban Kanavu', author: 'M. S. V. Narasimhan', price: 14.49, rating: 0, ratingCount: 0, feedbackList: [], description: 'Barthiban Kanavu (translated as The Dream of Barthiban) is a Tamil novel that weaves a captivating tale of dreams, aspirations, and the quest for identity, exploring the complexities of human relationships and the pursuit of one\'s true calling.', imageUrl: 'https://qph.cf2.quoracdn.net/main-qimg-31c0a13fe9bf29e2581bfcaf69e9238c-lq' },
+                    { title: 'Ponnipunal Poobpaavai', author: 'K. V. Gopalakrishnan', price: 19.49, rating: 0, ratingCount: 0, feedbackList: [], description: 'Ponnipunal Poobpaavai is a Tamil novel that delves into themes of love, sacrifice, and social issues, telling the poignant story of a woman\'s struggles and resilience against the backdrop of traditional societal norms.', imageUrl: 'https://cdn.exoticindia.com/images/products/original/books-2019-009/mzg256.jpg' },
+                    { title: 'Vekkai', author: 'Su. Samuthirakan', price: 5.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'Vekkai is a Tamil novel that explores the harsh realities of life and the human psyche, delving into themes of violence, survival, and moral dilemmas faced by individuals in a tumultuous society.', imageUrl: 'https://rukminim2.flixcart.com/image/850/1000/kn6cxow0/regionalbooks/l/x/q/vekkai-modern-tamil-classic-novel-original-imagfwxuzffygeag.jpeg?q=90&crop=false' },
+                    { title: 'Irulukku Uyir Undu', author: 'V. S. Ramachandran', price: 22.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'Irulukku Uyir Undu is a Tamil novel that explores the theme of existentialism, highlighting the struggles of individuals seeking meaning and purpose in life amidst darkness and despair.', imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSScmj8ExtXhi5gLZDJwjjvcNQIo-iLleQBnQ&s' },
+                    { title: 'Aram', author: 'Perumal Murugan', price: 9.49, rating: 0, ratingCount: 0, feedbackList: [], description: 'Aram is a thought-provoking Tamil novel that delves into the complexities of morality, tradition, and human relationships, exploring the struggle between personal convictions and societal expectations in a rural Indian setting.', imageUrl: 'https://m.media-amazon.com/images/I/81HdZw9k83L._AC_UF1000,1000_QL80_.jpg' },
+                    { title: 'Siru Kathaigal', author: ' V. Ramasamy (also known as "Sivaji" Ganesan)', price: 12.49, rating: 0, ratingCount: 0, feedbackList: [], description: 'Puthumai Piththan Siru Kathaigal is a collection of short stories that depict various facets of life, society, and human emotions, blending humor and realism to reflect the challenges and aspirations of contemporary Tamil culture.', imageUrl: 'https://cdn.exoticindia.com/images/products/original/books-2019-021/uao729.jpg' },
+                    { title: 'Thirukural', author: 'Thiruvalluvar', price: 6.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'Thirukural is an ancient Tamil text comprising 1,330 couplets that offer profound wisdom on ethics, politics, love, and morality, serving as a guide to righteous living and harmonious society.', imageUrl: 'https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1414433177i/1198920.jpg' },
+                    { title: 'Kaaviya Kaalam', author: ' R. K. Narayan', price: 11.29, rating: 0, ratingCount: 0, feedbackList: [], description: 'Kaaviya Kaalam (translated as The Era of Poetry) is a Tamil novel that explores the significance of poetry and literature in shaping cultural identity, while weaving a narrative that reflects the life and times of its characters amidst societal changes.', imageUrl: 'https://cdn.exoticindia.com/images/products/original/books-2019-008/mze530.jpg' },
+                    { title: 'Bagavath Geethai', author: 'Traditionally attributed to Vyasa', price: 15.99, rating: 0, ratingCount: 0, feedbackList: [], description: 'Bhagavad Gita is a 700-verse Hindu scripture that is part of the Indian epic Mahabharata, presenting a conversation between Prince Arjuna and Lord Krishna, who serves as his charioteer, addressing profound philosophical and ethical dilemmas related to duty, righteousness, and the nature of existence.', imageUrl: 'https://m.media-amazon.com/images/I/A1zRq4prs6L._AC_UF1000,1000_QL80_.jpg' },
+                ];
+
+                // Initialize filteredBooks
+                $scope.filteredBooks = $scope.books;
+
+                $scope.searchQuery = '';
+
+                // Function to search books
+                $scope.searchBooks = function() {
+                    if ($scope.searchQuery.trim() === '') {
+                        $scope.filteredBooks = $scope.books;
+                    } else {
+                        $scope.filteredBooks = $scope.books.filter(book => book.title.toLowerCase().includes($scope.searchQuery.toLowerCase()));
+                    }
+                };
+
+                // Function to add a book to the cart
+                $scope.addToCart = function(book) {
+                    $scope.cart.push(book);
+                    alert('The Book Added To the Cart Successfully');
+                };
+
+                // Function to add a book to the wishlist
+                $scope.addToWishlist = function(book) {
+                    const index = $scope.wishlist.indexOf(book);
+                    if (index > -1) {
+                        // Remove from wishlist if already exists
+                        $scope.wishlist.splice(index, 1);
+                        book.isInWishlist = false;
+                    } else {
+                        // Add to wishlist if not exists
+                        $scope.wishlist.push(book);
+                        book.isInWishlist = true;
+                        alert('The Book Wishlisted Successfully.');
+                    }
+                };
+
+                // Function to submit feedback for a book
+                $scope.submitFeedback = function(book) {
+                    if (book.feedbackText) {
+                        $http.post(`http://localhost:3005/api/books/${book._id}/feedback`)
+                        book.feedbackList.push({ username: 'Anonymous', text: book.feedbackText });
+                        book.feedbackText = ''; // Clear the feedback input
+                        alert('Feedback submitted successfully.');
+                    } else {
+                        alert('Please enter feedback before submitting.');
+                    }
+                };
+
+                // Function to rate a book
+                $scope.rateBook = function(book, rating) {
+                    book.rating = ((book.rating * book.ratingCount) + rating) / (book.ratingCount + 1);
+                    book.ratingCount++;
+                    alert('Thank you for rating the book!');
+                };
+
+                // Function to buy now
+                $scope.buyNow = function(book) {
+                    alert('Your order has been placed. Thank you!');
+                };
+            }]);
+    </script>
+</body>
+</html>
